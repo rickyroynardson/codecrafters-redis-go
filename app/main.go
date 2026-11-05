@@ -5,10 +5,18 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strconv"
 	"strings"
+	"time"
 )
 
-var store = make(map[string]string)
+type record struct {
+	key   string
+	value string
+	exp   time.Time
+}
+
+var store = make(map[string]record)
 
 func main() {
 	// You can use print statements as follows for debugging, they'll be visible when running tests.
@@ -56,11 +64,26 @@ func handleConnection(conn net.Conn) {
 			}
 			writeBulkString(conn, args[1])
 		case "SET":
-			if len(args) < 3 {
+			if len(args) != 3 && len(args) != 5 {
 				conn.Write([]byte("-ERR invalid argument\r\n"))
 				continue
 			}
-			store[args[1]] = args[2]
+
+			rec := record{key: args[1], value: args[2]}
+			if len(args) == 5 {
+				n, err := strconv.Atoi(args[4])
+				if err != nil {
+					conn.Write([]byte("-ERR invalid expiration time\r\n"))
+					continue
+				}
+				switch strings.ToUpper(args[3]) {
+				case "EX":
+					rec.exp = time.Now().Add(time.Duration(n) * time.Second)
+				case "PX":
+					rec.exp = time.Now().Add(time.Duration(n) * time.Millisecond)
+				}
+			}
+			store[args[1]] = rec
 			conn.Write([]byte("+OK\r\n"))
 		case "GET":
 			if len(args) < 2 {
@@ -68,10 +91,14 @@ func handleConnection(conn net.Conn) {
 				continue
 			}
 			v, ok := store[args[1]]
+			if ok && !v.exp.IsZero() && time.Now().After(v.exp) {
+				delete(store, args[1])
+				ok = false
+			}
 			if !ok {
 				conn.Write([]byte("$-1\r\n"))
 			} else {
-				writeBulkString(conn, v)
+				writeBulkString(conn, v.value)
 			}
 		default:
 			conn.Write([]byte("-ERR unknown command\r\n"))
