@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"net"
 	"os"
+	"strings"
 )
 
 func main() {
@@ -31,13 +33,24 @@ func main() {
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
 
-	buf := make([]byte, 1024)
+	r := bufio.NewReader(conn)
+
 	for {
-		_, err := conn.Read(buf)
+		args, err := readCommand(r)
 		if err != nil {
 			return
 		}
+		if len(args) == 0 {
+			continue
+		}
 
-		conn.Write([]byte("+PONG\r\n"))
+		switch strings.ToUpper(args[0]) {
+		case "PING":
+			conn.Write([]byte("+PONG\r\n"))
+		case "ECHO":
+			writeBulkString(conn, args[1])
+		default:
+			conn.Write([]byte("-ERR unknown command\r\n"))
+		}
 	}
 }
