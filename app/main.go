@@ -38,6 +38,6 @@ func handleConnection(conn net.Conn) {
 			return
 		}
 
-		conn.Write([]byte("+PING\r\n"))
+		conn.Write([]byte("+PONG\r\n"))
 	}
 }
