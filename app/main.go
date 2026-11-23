@@ -1,33 +1,31 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"net"
 	"os"
-	"strconv"
-	"strings"
-	"time"
+
+	"github.com/codecrafters-io/redis-starter-go/internal/command"
+	"github.com/codecrafters-io/redis-starter-go/internal/config"
+	"github.com/codecrafters-io/redis-starter-go/internal/resp"
+	"github.com/codecrafters-io/redis-starter-go/internal/store"
 )
 
-type record struct {
-	key   string
-	value string
-	exp   time.Time
-}
-
-var store = make(map[string]record)
-
 func main() {
-	// You can use print statements as follows for debugging, they'll be visible when running tests.
 	fmt.Println("Logs from your program will appear here!")
 
-	l, err := net.Listen("tcp", "0.0.0.0:6379")
+	cfg := config.Init()
+
+	l, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", cfg.Port))
 	if err != nil {
-		fmt.Println("Failed to bind to port 6379")
+		fmt.Printf("Failed to bind to port %d\n", cfg.Port)
 		os.Exit(1)
 	}
 	defer l.Close()
+
+	store := store.New()
+
+	handler := command.NewHandler(store)
 
 	for {
 		conn, err := l.Accept()
@@ -36,72 +34,29 @@ func main() {
 			continue
 		}
 
-		go handleConnection(conn)
+		go handleConnection(conn, handler)
 	}
 }
 
-func handleConnection(conn net.Conn) {
+func handleConnection(conn net.Conn, handler *command.Handler) {
 	defer conn.Close()
 
-	r := bufio.NewReader(conn)
+	r := resp.NewReader(conn)
 
 	for {
-		args, err := readCommand(r)
+		args, err := r.ReadArray()
 		if err != nil {
-			return
+			break
 		}
 		if len(args) == 0 {
 			continue
 		}
 
-		switch strings.ToUpper(args[0]) {
-		case "PING":
-			conn.Write([]byte("+PONG\r\n"))
-		case "ECHO":
-			if len(args) < 2 {
-				conn.Write([]byte("-ERR invalid argument\r\n"))
-				continue
-			}
-			writeBulkString(conn, args[1])
-		case "SET":
-			if len(args) != 3 && len(args) != 5 {
-				conn.Write([]byte("-ERR invalid argument\r\n"))
-				continue
-			}
-
-			rec := record{key: args[1], value: args[2]}
-			if len(args) == 5 {
-				n, err := strconv.Atoi(args[4])
-				if err != nil {
-					conn.Write([]byte("-ERR invalid expiration time\r\n"))
-					continue
-				}
-				switch strings.ToUpper(args[3]) {
-				case "EX":
-					rec.exp = time.Now().Add(time.Duration(n) * time.Second)
-				case "PX":
-					rec.exp = time.Now().Add(time.Duration(n) * time.Millisecond)
-				}
-			}
-			store[args[1]] = rec
-			conn.Write([]byte("+OK\r\n"))
-		case "GET":
-			if len(args) < 2 {
-				conn.Write([]byte("-ERR invalid argument\r\n"))
-				continue
-			}
-			v, ok := store[args[1]]
-			if ok && !v.exp.IsZero() && time.Now().After(v.exp) {
-				delete(store, args[1])
-				ok = false
-			}
-			if !ok {
-				conn.Write([]byte("$-1\r\n"))
-			} else {
-				writeBulkString(conn, v.value)
-			}
-		default:
-			conn.Write([]byte("-ERR unknown command\r\n"))
+		response, err := handler.Handle(args)
+		if err != nil {
+			conn.Write([]byte(resp.Error(err.Error())))
+			continue
 		}
+		conn.Write([]byte(response))
 	}
 }
