@@ -9,6 +9,11 @@ func (s *Store) RPush(key string, values ...string) int {
 	return len(s.List[key])
 }
 
+func (s *Store) LPush(key string, values ...string) int {
+	s.List[key] = append(values, s.List[key]...)
+	return len(s.List[key])
+}
+
 func (s *Store) LRange(key string, start, stop int) []string {
 	list, ok := s.List[key]
 	if !ok {

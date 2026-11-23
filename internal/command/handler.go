@@ -45,6 +45,11 @@ func (h *Handler) Handle(args []string) (string, error) {
 			return "", errors.New("invalid argument")
 		}
 		return h.rpush(args), nil
+	case "LPUSH":
+		if len(args) < 2 {
+			return "", errors.New("invalid argument")
+		}
+		return h.lpush(args), nil
 	case "LRANGE":
 		if len(args) != 4 {
 			return "", errors.New("invalid argument")

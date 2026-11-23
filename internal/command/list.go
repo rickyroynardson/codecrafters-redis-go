@@ -11,6 +11,11 @@ func (h *Handler) rpush(args []string) string {
 	return resp.Integer(length)
 }
 
+func (h *Handler) lpush(args []string) string {
+	length := h.store.LPush(args[1], args[2:]...)
+	return resp.Integer(length)
+}
+
 func (h *Handler) lrange(args []string) string {
 	key := args[1]
 	start, _ := strconv.Atoi(args[2])
