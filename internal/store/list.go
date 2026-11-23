@@ -25,5 +25,13 @@ func (s *Store) LRange(key string, start, stop int) []string {
 		return []string{}
 	}
 
+	if start < 0 {
+		start = len(list) + start
+	}
+
+	if stop < 0 {
+		stop = len(list) + stop
+	}
+
 	return list[start : stop+1]
 }
