@@ -52,3 +52,12 @@ func (s *Store) LRange(key string, start, stop int) []string {
 
 	return list[start : stop+1]
 }
+
+func (s *Store) LLen(key string) int {
+	list, ok := s.List[key]
+	if !ok {
+		return 0
+	}
+
+	return len(list)
+}

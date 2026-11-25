@@ -24,3 +24,7 @@ func (h *Handler) lrange(args []string) string {
 	values := h.store.LRange(key, start, stop)
 	return resp.Array(values)
 }
+
+func (h *Handler) llen(args []string) string {
+	return resp.Integer(h.store.LLen(args[1]))
+}

@@ -55,6 +55,11 @@ func (h *Handler) Handle(args []string) (string, error) {
 			return "", errors.New("invalid argument")
 		}
 		return h.lrange(args), nil
+	case "LLEN":
+		if len(args) != 2 {
+			return "", errors.New("invalid argument")
+		}
+		return h.llen(args), nil
 	}
 	return "", fmt.Errorf("unknown command %q", cmd)
 }
