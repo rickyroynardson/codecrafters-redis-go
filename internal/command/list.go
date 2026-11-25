@@ -28,3 +28,11 @@ func (h *Handler) lrange(args []string) string {
 func (h *Handler) llen(args []string) string {
 	return resp.Integer(h.store.LLen(args[1]))
 }
+
+func (h *Handler) lpop(args []string) string {
+	value := h.store.LPop(args[1])
+	if value == "" {
+		return resp.NullBulkString()
+	}
+	return resp.BulkString(value)
+}
