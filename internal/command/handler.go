@@ -65,6 +65,11 @@ func (h *Handler) Handle(args []string) (string, error) {
 			return "", errors.New("invalid argument")
 		}
 		return h.lpop(args), nil
+	case "BLPOP":
+		if len(args) < 3 {
+			return "", errors.New("invalid argument")
+		}
+		return h.blpop(args), nil
 	}
 	return "", fmt.Errorf("unknown command %q", cmd)
 }

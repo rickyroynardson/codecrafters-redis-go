@@ -2,6 +2,7 @@ package command
 
 import (
 	"strconv"
+	"time"
 
 	"github.com/codecrafters-io/redis-starter-go/internal/resp"
 )
@@ -42,4 +43,31 @@ func (h *Handler) lpop(args []string) string {
 		return resp.BulkString(values[0])
 	}
 	return resp.Array(values)
+}
+
+func (h *Handler) blpop(args []string) string {
+	key := args[1]
+
+	if h.store.Length(key) > 0 {
+		result := h.store.LPop(key, 1)
+		return resp.Array([]string{key, result[0]})
+	}
+
+	timeout, _ := strconv.ParseFloat(args[2], 64)
+
+	ch := make(chan []string)
+	h.store.AddBlockedClient(key, ch)
+
+	if timeout == 0 {
+		result := <-ch
+		return resp.Array(result)
+	}
+
+	select {
+	case result := <-ch:
+		return resp.Array(result)
+	case <-time.After(time.Duration(timeout * float64(time.Second))):
+		h.store.RemoveBlockedClient(key, ch)
+		return resp.NullArray()
+	}
 }

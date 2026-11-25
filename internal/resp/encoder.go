@@ -25,6 +25,10 @@ func Integer(raw int) string {
 	return fmt.Sprintf(":%d\r\n", raw)
 }
 
+func NullArray() string {
+	return "*-1\r\n"
+}
+
 func EmptyArray() string {
 	return "*0\r\n"
 }
