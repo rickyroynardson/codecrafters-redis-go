@@ -62,12 +62,17 @@ func (s *Store) LLen(key string) int {
 	return len(list)
 }
 
-func (s *Store) LPop(key string) string {
+func (s *Store) LPop(key string, count int) []string {
 	list, ok := s.List[key]
 	if !ok || len(list) == 0 {
-		return ""
+		return []string{}
 	}
-	value := list[0]
-	s.List[key] = list[1:]
-	return value
+
+	if count > len(list) {
+		count = len(list)
+	}
+
+	values := list[:count]
+	s.List[key] = list[count:]
+	return values
 }

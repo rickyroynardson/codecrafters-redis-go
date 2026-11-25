@@ -30,9 +30,16 @@ func (h *Handler) llen(args []string) string {
 }
 
 func (h *Handler) lpop(args []string) string {
-	value := h.store.LPop(args[1])
-	if value == "" {
-		return resp.NullBulkString()
+	count := 1
+	if len(args) == 3 {
+		count, _ = strconv.Atoi(args[2])
 	}
-	return resp.BulkString(value)
+
+	values := h.store.LPop(args[1], count)
+	if len(values) == 0 {
+		return resp.NullBulkString()
+	} else if len(values) == 1 {
+		return resp.BulkString(values[0])
+	}
+	return resp.Array(values)
 }

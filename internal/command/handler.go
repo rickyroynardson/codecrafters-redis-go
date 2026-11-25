@@ -61,7 +61,7 @@ func (h *Handler) Handle(args []string) (string, error) {
 		}
 		return h.llen(args), nil
 	case "LPOP":
-		if len(args) != 2 {
+		if len(args) < 2 {
 			return "", errors.New("invalid argument")
 		}
 		return h.lpop(args), nil
